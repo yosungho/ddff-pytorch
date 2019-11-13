@@ -47,6 +47,7 @@ class DDFFNet(nn.Module):
     def forward(self, images):
         #Encode stacks in batch dimension and calculate features
         image_features = self.autoencoder(images.view(-1, *images.shape[2:]))
+        
         #Encode stacks in feature dimension again
         image_features = image_features.view(images.shape[0], -1, *image_features.shape[2:])
         #Score extracted features
@@ -145,6 +146,7 @@ class DDFFNet(nn.Module):
         return pretrained_dict
 
     def __map_state_dict_tf(self, vgg16_features, bias):
+        print("trying to use pretrained_data")
         pretrained_dict = {
             'conv1_1.weight': torch.from_numpy(vgg16_features['conv1_1'][0].transpose((3, 2, 0, 1))).float(),
             'conv1_2.weight': torch.from_numpy(vgg16_features['conv1_2'][0].transpose((3, 2, 0, 1))).float(),
@@ -280,8 +282,8 @@ class DDFFAutoEncoder(nn.Module):
         self.conv1_2_D_bn = nn.BatchNorm2d(64, eps=0.001)
         self.conv1_1_D = nn.Conv2d(64, self.output_dims, 3, padding=1, bias=bias)
         self.conv1_1_D_bn = nn.BatchNorm2d(self.output_dims, eps=0.001)
-
-    def forward(self, x):
+    
+    def encoder(self, x):
         #Encoder
         x = nn.functional.relu(self.conv1_1_bn(self.conv1_1(x)))
         cc1 = nn.functional.relu(self.conv1_2_bn(self.conv1_2(x)))
@@ -304,6 +306,40 @@ class DDFFAutoEncoder(nn.Module):
         cc5 = nn.functional.relu(self.conv5_3_bn(self.conv5_3(x)))
         x = self.pool5(cc5)
         x = self.encdrop5(x)
+        return x, cc1, cc2, cc3, cc4, cc5
+
+    def forward(self, x):
+        
+        x1 = x[:5]
+        x2 = x[5:]
+
+        # #Encoder
+        x1, cc1_1, cc2_1, cc3_1, cc4_1, cc5_1 = self.encoder(x1)
+        x2, cc1_2, cc2_2, cc3_2, cc4_2, cc5_2 = self.encoder(x2)
+        x = torch.cat((x1, x2), 0)
+
+        # #Encoder
+        # x = nn.functional.relu(self.conv1_1_bn(self.conv1_1(x)))
+        # cc1 = nn.functional.relu(self.conv1_2_bn(self.conv1_2(x)))
+        # x = self.pool1(cc1)
+        # x = nn.functional.relu(self.conv2_1_bn(self.conv2_1(x)))
+        # cc2 = nn.functional.relu(self.conv2_2_bn(self.conv2_2(x)))
+        # x = self.pool2(cc2)
+        # x = nn.functional.relu(self.conv3_1_bn(self.conv3_1(x)))
+        # x = nn.functional.relu(self.conv3_2_bn(self.conv3_2(x)))
+        # cc3 = nn.functional.relu(self.conv3_3_bn(self.conv3_3(x)))
+        # x = self.pool3(cc3)
+        # x = self.encdrop3(x)
+        # x = nn.functional.relu(self.conv4_1_bn(self.conv4_1(x)))
+        # x = nn.functional.relu(self.conv4_2_bn(self.conv4_2(x)))
+        # cc4 = nn.functional.relu(self.conv4_3_bn(self.conv4_3(x)))
+        # x = self.pool4(cc4)
+        # x = self.encdrop4(x)
+        # x = nn.functional.relu(self.conv5_1_bn(self.conv5_1(x)))
+        # x = nn.functional.relu(self.conv5_2_bn(self.conv5_2(x)))
+        # cc5 = nn.functional.relu(self.conv5_3_bn(self.conv5_3(x)))
+        # x = self.pool5(cc5)
+        # x = self.encdrop5(x)
 
         #Decoder
         x = self.upconv5(x)
@@ -322,7 +358,10 @@ class DDFFAutoEncoder(nn.Module):
         x = self.decdrop4(x)
         x = self.upconv3(x)
         if self.cc3_enabled:
+            # x = torch.cat([x, cc3], 1)
+            cc3 = torch.cat([cc3_1, cc3_2], 0)
             x = torch.cat([x, cc3], 1)
+
         x = nn.functional.relu(self.conv3_3_D_bn(self.conv3_3_D(x)))
         x = nn.functional.relu(self.conv3_2_D_bn(self.conv3_2_D(x)))
         x = nn.functional.relu(self.conv3_1_D_bn(self.conv3_1_D(x)))
