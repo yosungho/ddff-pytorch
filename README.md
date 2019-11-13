@@ -1,6 +1,14 @@
 # Deep Depth From Focus
 [Deep Depth From Focus](http://hazirbas.com/projects/ddff/) implementation in PyTorch. Please check the [ddff-toolbox](https://github.com/hazirbas/ddff-toolbox) for refocusing and camera parameters.
 
+## Modified by yosungho
+In order to improve the performance, I modified the original architecture to have two encoders training short and long focal stacks respectively. And it results in the better performance than the original one.
+
+<img src="https://user-images.githubusercontent.com/31395364/68740319-23f8ed80-062e-11ea-870a-c49c3c4ed789.png" align="center" width="100%" >
+
+<img src="https://user-images.githubusercontent.com/31395364/68739600-8f41c000-062c-11ea-9522-94d75e0720be.png" align="center" width="70%" >
+
+
 ## Usage
 ### Installation
 To run the project a Python 3.7.0 environment and a number of packages are required. The easiest way to fetch all dependencies is to install via pip.
